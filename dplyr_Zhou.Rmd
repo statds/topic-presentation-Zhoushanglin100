@@ -10,10 +10,11 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
-library(dplyr)
-library(tidyr)
-library(tibble)
-library(ggplot2)
+library(tidyselect)
+# library(dplyr)
+# library(tidyr)
+# library(tibble)
+# library(ggplot2)
 library(hflights)
 ```
 ## Outline
