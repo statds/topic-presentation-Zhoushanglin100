@@ -1,0 +1,13 @@
+﻿GeneId,sample_name,expression
+gen1,Sample1,1
+gen1,Sample2,2
+gen1,Sample3,0.3
+gen2,Sample1,4
+gen2,Sample2,5
+gen2,Sample3,6
+gen3,Sample1,7
+gen3,Sample2,0.8
+gen3,Sample3,9
+gen4,Sample1,10
+gen4,Sample2,11
+gen4,Sample3,12

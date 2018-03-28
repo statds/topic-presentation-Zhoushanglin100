@@ -1,0 +1,395 @@
+---
+title: "Fast data manipulation with 'dplyr'"
+author: "Shanglin Zhou  2334229"
+date: "3/29/2018"
+output:
+  ioslides_presentation: default
+  beamer_presentation: default
+  slidy_presentation: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+library(dplyr)
+library(tidyr)
+library(tibble)
+library(ggplot2)
+library(hflights)
+```
+## Outline
+- What is `dplyr`?
+- Why `dplyr`?
+- Several Basic Verbs
+- Process two or more tables
+
+<!----------------------------------------------------------------------------------------------------------------------->
+## What is "dplyr"?
+
+- A package for data manipulation and exporlation, written and maintained by Hadley Wickham. It provides some great, easy-to-use functions that are very handy when performing exploratory data analysis and manipulation. 
+
+- Focussing on only data frames, it is faster and has a more consistent API that is easier to use.
+
+<!----------------------------------------------------------------------------------------------------------------------->
+## Why "dplyr"?
+
+- **Fast in calculation** : 20X - 100X faster.
+<!-- Compared to plyr library, dplyr is anywhere between 20X - 100X faster in its calculations. --> 
+
+- **Great for data exploration and transformation** : same code structure with database (SQL).
+<!-- the syntax allows for function chaining, preventing any potential cluttering in the code, which in turn makes for easier code writing/reading.-->
+
+- **Intuitive to write and easy to read** : have individual functions that correspond to the most common operations; especially when using the "chaining" syntex
+<!-- dplyr has a limited number of functions (5) that are focused on the most common requirements of data manipulation. the syntax is both simple and effecient. -->
+
+<!----------------------------------------------------------------------------------------------------------------------->
+## Several basic verbs:
+
+- `filter()`: to select cases based on their values.
+- `arrange()`: to reorder the cases.
+- `select()` and `rename()`: to select variables based on their names.
+- `mutate()` and `transmute()`: to add new variables that are functions of existing variables.
+- `summarise()`: to condense multiple values to a single value.
+- `sample_n()` and `sample_frac()`: to take random samples.
+
+<!----------------------------------------------------------------------------------------------------------------------->
+## Dataset
+
+To explore the basic data manipulation verbs of dplyr, we'll use **`hflights'** dataset, which is from an R package **hflights**. The dataset contains commercial domestic flights that departed Houston (IAH and HOU) in 2011. The data comes from the Research and Innovation Technology Administration at the Bureau of Transporation statistics. [here](https://www.transtats.bts.gov/DatabaseInfo.asp?DB_ID=120&Link=0)
+
+<!----------------------------------------------------------------------------------------------------------------------->
+## Data Structure
+```{r, echo=FALSE}
+data("hflights")
+str(hflights)
+```
+
+## Data Structure
+
+```{r}
+hflights_df <- tbl_df(hflights); hflights_df
+```
+
+## Data Structure
+```{r, results='hide'}
+print(hflights_df, n = 20)
+```
+
+```{r}
+data.frame(head(hflights_df, 2))
+```
+
+<!----------------------------------------------------------------------------------------------------------------------->
+## ![](filter().png) `filter()` 
+
+`filter()` allows us to select a subset of rows in a data frame. Like all single verbs, the first argument is the data frame. The second and subsequent arguments refer to variables within that data frame, selecting rows where the expression is TRUE.
+
+Similair to `base::subset()` or `[,]`, we can filter our data by rows evaluated by a certain criteria.
+
+## ![](filter().png) `filter()` 
+- To select all flights on New Years Day, we can say:
+```{r, results='hide'}
+filter(hflights_df, Month == 1, DayofMonth == 1)
+```
+
+- Compare with base function:
+```{r, results='hide'}
+hflights[hflights$Month == 1 & hflights$DayofMonth == 1, ]
+```
+
+## ![](filter().png) `filter()` 
+
+- In addition to concise code, it also supports any combination of selection on the same object:
+
+```{r, results='hide'}
+filter(hflights_df, Month == 1 | Month == 2)
+# or
+filter(hflights_df, Month %in% c(1, 2))
+```
+
+```{r, results='hide'}
+# Wrong syntex
+# filter(hflights_df, Month == 1 | 2)
+```
+
+
+<!----------------------------------------------------------------------------------------------------------------------->
+## ![](arrange().png) `arrange()` 
+
+This function works the same as `plyr::arrange()` and `base::order()`. Instead of selecting rows, it reorders them. Also note the `desc()` option, which orders in descending (alphabetical or numerical) order. 
+
+- Sort the rows by the given column name, also arrange by reverse choronology in year:
+
+```{r, results='hide'}
+hflights_df %>%
+    select(UniqueCarrier, DepDelay) %>%
+    arrange(desc(DepDelay))
+```
+
+- Compare with base function:
+```{r, results='hide'}
+hflights[order(desc(hflights$DepDelay)), c("UniqueCarrier", "DepDelay")]
+```
+
+<!----------------------------------------------------------------------------------------------------------------------->
+## ![](select().png) `select()` 
+
+We are very familiar with two methods of selecting a set of columns from a larger data frame. In base R, the first is the `subset()` function, and the other is the rows, columns slicing syntax `[,]`.
+
+The **`dplyr::select()`** function is even more straightforward and powerful. It allows you to rapidly zoom in on a useful subset using operations that usually only work on numeric variable positions.
+
+## ![](select().png) `select()` 
+
+We can select three columns by name without use quotations:
+
+```{r}
+select(hflights_df, Year, Month, AirTime) %>% head(1)  
+```
+
+or select all columns between year and day:
+```{r}
+select(hflights_df, Year:DayofMonth, contains("Taxi")) %>% head(1)
+```
+
+## ![](select().png) `select()`
+
+We can use "-" to elimate column names, for example, just keep Year and Cancel information:
+```{r}
+select(hflights_df, -(DepTime:TaxiOut), -CancellationCode, -Diverted) %>% head(4)
+```
+
+## ![](select().png) `select()`
+Also similar to R's own `subset()` function, but **`dplyr()`** no longers need to write a long list of `c("colname1", "colname2")` or `which(colname(data) == "colname3")`, even does not need to find the column number.
+
+There are a number of helper functions we can use within `select()`, like `starts_with()`, `ends_with()`, `matches()` and `contains()`, which can let us quickly match larger blocks of variables that meet some criterion. 
+
+## ![](select().png) `select()`
+
+`dplyr::select()` has the ability to do renaming of columns with a very straightforward syntax: `new_col_name = old_name`. Let's select the first three columns we began with and rename them:
+
+```{r}
+select(hflights_df, Yr = Year, Mth = Month, Tm = AirTime) %>% head(2)
+```
+
+## ![](select().png) `select()`
+
+Notice how the new dataframe only contains the three columns we've just created. To keep the remaining columns, there is a subfunction called `matches()` that does the trick.
+
+```{r}
+# rename three columns and select all
+select(hflights_df,Yr = Year,Mth = Month,Tm = AirTime,matches("."))%>%head(2)
+```
+
+<!----------------------------------------------------------------------------------------------------------------------->
+## ![](mutate().png) `mutate()` 
+
+We can create new columns with `mutate()`. <!-- This function requires a table dataframe as a first argument, and any desired columns to follow. It requires column creation to be more neatly written in the code, and the payoff in speed is also a significant benefit. --> It has the same effect as `plyr::mutate()`, and similar to `base::transform()`, but with the advantage that the newly added column can be manipulated in the same statement:
+
+
+```{r, results='hide'}
+mutate(hflights_df, 
+       gain = ArrDelay - DepDelay, 
+       gain_per_hour = gain / (AirTime / 60)
+)
+```
+
+Whereas in the `base::transform()` we need to write like this:
+
+```{r, results='hide'}
+transform(hflights, 
+          gain = ArrDelay - DepDelay, 
+          gain_per_hour =  (ArrDelay - DepDelay) / (AirTime / 60)
+)
+```
+
+
+## ![](mutate().png) `mutate()` 
+
+One cool feature of `dplyr::mutate()` is the ability to refer to columns that you just created. 
+
+```{r}
+hflights_df %>% 
+  mutate(Distance_km = round(Distance*1.6), AirPoints = Distance_km*2) %>%
+  select(Distance_km, AirPoints) %>%
+  arrange(desc(AirPoints)) %>%
+  tail(5)
+```
+<!-- Using chaining syntax for more readable code
+The pipe operator %>% (read as then) in R, represented by %>% can be used to chain code together. It is very useful when you are performing several operations on data, and don't want to save the output at each intermediate step. -->
+
+## ![](mutate().png) `mutate()` 
+```{r, results='hide'}
+# nesting method
+tail(arrange(select(mutate(hflights_df, 
+                           Distance_km = round(Distance*1.6), 
+                           AirPoints = Distance_km*2), 
+                    Distance_km, AirPoints), 
+             desc(AirPoints)), 5)
+```
+
+Chaining 
+
+- Increases readability significantly when there are many commands \
+- Operator is automatically imported from the magrittr package \
+- Can be used to replace nesting in R commands outside of dplyr \
+
+<!----------------------------------------------------------------------------------------------------------------------->
+## ![](sample().png) `sample_n()` &  `sample_frac()` 
+
+The `sample` function is used to select random rows from a table. The first line of code randomly selects ten rows from the dataset, and the second line of code randomly selects 10% of the original rows from the dataset.
+
+```{r, results='hide'}
+sample_n(hflights_df, size = 10)
+sample_frac(hflights_df, size = 0.1)
+```
+
+Use `replace = TRUE` to perform a bootstrap sample. If needed, you can weight the sample with the `weight` argument.
+
+<!----------------------------------------------------------------------------------------------------------------------->
+## Processing two or more tables
+When we process data, in addition to processing individual tables, we sometimes need to operate on two or more tables. Another advantage of **`dplyr()`** is it incorporates a lot of ideas for data manipulation in SQL databases, which makes it logical and consistent to operate on the data tables (tibbles). If you are accessing the analysis in the database, the steps taken will not be a big change. Using the dplyr package can easily let us use the same function to handle the table in the database.
+
+## Processing two or more tables
+<!-- Two new tables -->
+```{r, echo=FALSE}
+gene_exp_tidy1 <- read.csv("table2.csv", header = TRUE)
+colnames(gene_exp_tidy1) <- c("GeneId", "sample_name", "expression")
+gene_exp_tidy2 <- data.frame(GeneId = rep("gen5", times = 3),sample_name = paste("Sample", 1:3, sep = ""), expression = 2:4)
+```
+
+```{r}
+gene_exp_tidy1
+```
+
+## Processing two or more tables
+
+```{r}
+gene_exp_tidy2
+```
+
+## Processing two or more tables
+```{r, echo=FALSE}
+gene_anno <- data.frame(GeneId = c("gen1", "gen2", "gen3"), annotation = c("a related", "b related", "c related"))
+gene_anno1 <- rename(gene_anno, Geneid = GeneId)
+```
+
+```{r}
+gene_anno
+gene_anno1
+```
+
+## Processing two or more tables
+- Combine cases
+
+Use `bind_cols(x, y)` to paste tables beside each other as they are.
+
+Use `bind_rows(x, y)` to paste tables below each other as they are.
+
+```{r, results='hide'}
+# base::rbind()
+rbind(gene_exp_tidy1,gene_exp_tidy2)
+```
+
+```{r, results='hide'}
+# dplyr::bind_rows()
+ bind_rows(gene_exp_tidy1,gene_exp_tidy2)
+```
+
+## Processing two or more tables
+- `intersect()`
+
+Create a data frame consisting of gene1 and gene5 first, then get intersect of gene_exp_tidy1 and gene_exp_tidy3:
+
+```{r}
+gene_exp_tidy3 <- filter(gene_exp_tidy1, GeneId == "gen1") %>% 
+  bind_rows(gene_exp_tidy2)
+intersect(gene_exp_tidy1, gene_exp_tidy3)
+```
+
+## Processing two or more tables
+- `union()`
+
+Find the union of gene_exp_tidy1 and gene_exp_tidy3 (automatically remove duplicates):
+```{r, results='hide'}
+union(gene_exp_tidy1, gene_exp_tidy3)
+```
+
+Find the union of two data frames (without removing duplicates)
+```{r, results='hide'}
+union_all(gene_exp_tidy1, gene_exp_tidy3)
+```
+
+## Processing two or more tables
+Find the difference between two data frames
+```{r}
+setdiff(gene_exp_tidy1, gene_exp_tidy3)
+```
+
+## Processing two or more tables
+`left_join()`: Take the first data frame as the standard and add the relevant information of the second data frame into the first one.
+```{r, results='hide'}
+left_join(gene_exp_tidy1, gene_anno, by = "GeneId")
+```
+What if the two column names are not exactly the same?
+```{r, results='hide'}
+left_join(gene_exp_tidy1, gene_anno1, by =c("GeneId" = "Geneid"))
+```
+
+## Processing two or more tables
+Similiar,
+<!--
+inner_join: Keep common lines in both data frames
+full_join: Keep information on all GeneIds in both tables
+semi_join: Only the GeneId information contained in the second data frame is retained
+anti_join: Only keep the GeneId information not included in the second data frame -->
+
+```{r, results='hide'}
+right_join(gene_exp_tidy1, gene_anno1, by =c("GeneId" = "Geneid"))
+
+inner_join(gene_exp_tidy1, gene_anno1, by =c("GeneId" = "Geneid"))
+
+full_join(gene_exp_tidy1, gene_anno1, by =c("GeneId" = "Geneid"))
+
+semi_join(gene_exp_tidy1, gene_anno1, by =c("GeneId" = "Geneid"))
+
+anti_join(gene_exp_tidy1, gene_anno1, by =c("GeneId" = "Geneid"))
+```
+
+## Row names
+
+Tidy data does not use rownames, which store a variable outside of the columns. To work with the rownames, first move them into a column.
+
+`rownames_to_column()`: Move row names into col.
+```{r}
+a <- rownames_to_column(gene_exp_tidy2, var = "C") 
+head(a, 3)
+```
+
+## Row names
+`column_to_rownames()`: Move col in row names.
+
+```{r}
+column_to_rownames(a, var = "C") %>% head(3)
+```
+
+<!----------------------------------------------------------------------------------------------------------------------->
+## Commonalities
+
+Syntax and function of all these verbs are very similar:
+
+- The first argument is a data frame.
+
+- The subsequent arguments describe what to do with the data frame. You can refer to columns in the data frame directly without using $.
+
+- The result is a new data frame
+
+Together these properties make it easy to chain together multiple simple steps to achieve a complex result.
+
+<!----------------------------------------------------------------------------------------------------------------------->
+## Additional Resource 
+- [Introduction to dplyr](http://dplyr.tidyverse.org/articles/dplyr.html)
+<!-- Official site-->
+- [Official dplyr reference manual and vignettes on CRAN](https://cran.r-project.org/web/packages/dplyr/index.html)
+- [`dplyr` Cheatsheet](https://www.rstudio.com/wp-content/uploads/2015/02/data-wrangling-cheatsheet.pdf)
+- [Introduction to dplyr for Faster Data Manipulation in R](http://rpubs.com/justmarkham/dplyr-tutorial)
+<!--There is a 40-minute video tutorial on YouTube that walks through this document in detail. helps understand-->
+
