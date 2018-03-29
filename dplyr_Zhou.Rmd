@@ -10,7 +10,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
-library(tidyselect)
+library(tidyverse)
 # library(dplyr)
 # library(tidyr)
 # library(tibble)
@@ -22,6 +22,8 @@ library(hflights)
 - Why `dplyr`?
 - Several Basic Verbs
 - Process two or more tables
+- Commonalities
+- Additional Resources
 
 <!----------------------------------------------------------------------------------------------------------------------->
 ## What is "dplyr"?
@@ -355,6 +357,7 @@ semi_join(gene_exp_tidy1, gene_anno1, by =c("GeneId" = "Geneid"))
 anti_join(gene_exp_tidy1, gene_anno1, by =c("GeneId" = "Geneid"))
 ```
 
+<!----------------------------------------------------------------------------------------------------------------------->
 ## Row names
 
 Tidy data does not use rownames, which store a variable outside of the columns. To work with the rownames, first move them into a column.
